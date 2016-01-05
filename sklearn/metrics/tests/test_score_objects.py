@@ -22,13 +22,13 @@ from sklearn.pipeline import make_pipeline
 from sklearn.cluster import KMeans
 from sklearn.dummy import DummyRegressor
 from sklearn.linear_model import Ridge, LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.datasets import make_blobs
 from sklearn.datasets import make_classification
 from sklearn.datasets import make_multilabel_classification
 from sklearn.datasets import load_diabetes
-from sklearn.cross_validation import train_test_split, cross_val_score
-from sklearn.grid_search import GridSearchCV
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import GridSearchCV
 from sklearn.multiclass import OneVsRestClassifier
 
 
@@ -80,6 +80,12 @@ class DummyScorer(object):
     """Dummy scorer that always returns 1."""
     def __call__(self, est, X, y):
         return 1
+
+
+def test_all_scorers_repr():
+    # Test that all scorers have a working repr
+    for name, scorer in SCORERS.items():
+        repr(scorer)
 
 
 def test_check_scoring():
@@ -219,6 +225,13 @@ def test_thresholded_scorers():
     score2 = roc_auc_score(y_test, clf.predict_proba(X_test)[:, 1])
     assert_almost_equal(score1, score2)
 
+    # test with a regressor (no decision_function)
+    reg = DecisionTreeRegressor()
+    reg.fit(X_train, y_train)
+    score1 = get_scorer('roc_auc')(reg, X_test, y_test)
+    score2 = roc_auc_score(y_test, reg.predict(X_test))
+    assert_almost_equal(score1, score2)
+
     # Test that an exception is raised on more than two classes
     X, y = make_blobs(random_state=0, centers=3)
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
@@ -229,8 +242,7 @@ def test_thresholded_scorers():
 def test_thresholded_scorers_multilabel_indicator_data():
     # Test that the scorer work with multilabel-indicator format
     # for multilabel and multi-output multi-class classifier
-    X, y = make_multilabel_classification(return_indicator=True,
-                                          allow_unlabeled=False,
+    X, y = make_multilabel_classification(allow_unlabeled=False,
                                           random_state=0)
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
 
@@ -304,7 +316,6 @@ def test_scorer_sample_weight():
     # scores really should be unequal.
     X, y = make_classification(random_state=0)
     _, y_ml = make_multilabel_classification(n_samples=X.shape[0],
-                                             return_indicator=True,
                                              random_state=0)
     split = train_test_split(X, y, y_ml, random_state=0)
     X_train, X_test, y_train, y_test, y_ml_train, y_ml_test = split

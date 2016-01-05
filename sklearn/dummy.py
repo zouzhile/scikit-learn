@@ -24,6 +24,8 @@ class DummyClassifier(BaseEstimator, ClassifierMixin):
     This classifier is useful as a simple baseline to compare with other
     (real) classifiers. Do not use it for real problems.
 
+    Read more in the :ref:`User Guide <dummy_estimators>`.
+
     Parameters
     ----------
     strategy : str
@@ -33,10 +35,16 @@ class DummyClassifier(BaseEstimator, ClassifierMixin):
           set's class distribution.
         * "most_frequent": always predicts the most frequent label in the
           training set.
+        * "prior": always predicts the class that maximizes the class prior
+          (like "most_frequent") and ``predict_proba`` returns the class prior.
         * "uniform": generates predictions uniformly at random.
         * "constant": always predicts a constant label that is provided by
           the user. This is useful for metrics that evaluate a non-majority
           class
+
+          .. versionadded:: 0.17
+             Dummy Classifier now supports prior fitting strategy using
+             parameter *prior*.
 
     random_state : int seed, RandomState instance, or None (default)
         The seed of the pseudo random number generator to use.
@@ -62,7 +70,7 @@ class DummyClassifier(BaseEstimator, ClassifierMixin):
     outputs_2d_ : bool,
         True if the output at fit is 2d, else false.
 
-    `sparse_output_` : bool,
+    sparse_output_ : bool,
         True if the array returned from predict is to be in sparse CSC format.
         Is automatically set to True if the input y is passed in sparse format.
 
@@ -95,7 +103,7 @@ class DummyClassifier(BaseEstimator, ClassifierMixin):
             Returns self.
         """
         if self.strategy not in ("most_frequent", "stratified", "uniform",
-                                 "constant"):
+                                 "constant", "prior"):
             raise ValueError("Unknown strategy type.")
 
         if self.strategy == "uniform" and sp.issparse(y):
@@ -147,8 +155,7 @@ class DummyClassifier(BaseEstimator, ClassifierMixin):
         return self
 
     def predict(self, X):
-        """
-        Perform classification on test vectors X.
+        """Perform classification on test vectors X.
 
         Parameters
         ----------
@@ -188,7 +195,7 @@ class DummyClassifier(BaseEstimator, ClassifierMixin):
 
         if self.sparse_output_:
             class_prob = None
-            if self.strategy == "most_frequent":
+            if self.strategy in ("most_frequent", "prior"):
                 classes_ = [np.array([cp.argmax()]) for cp in class_prior_]
 
             elif self.strategy == "stratified":
@@ -204,7 +211,7 @@ class DummyClassifier(BaseEstimator, ClassifierMixin):
             y = random_choice_csc(n_samples, classes_, class_prob,
                                   self.random_state)
         else:
-            if self.strategy == "most_frequent":
+            if self.strategy in ("most_frequent", "prior"):
                 y = np.tile([classes_[k][class_prior_[k].argmax()] for
                              k in range(self.n_outputs_)], [n_samples, 1])
 
@@ -265,9 +272,11 @@ class DummyClassifier(BaseEstimator, ClassifierMixin):
         P = []
         for k in range(self.n_outputs_):
             if self.strategy == "most_frequent":
-                ind = np.ones(n_samples, dtype=int) * class_prior_[k].argmax()
+                ind = class_prior_[k].argmax()
                 out = np.zeros((n_samples, n_classes_[k]), dtype=np.float64)
                 out[:, ind] = 1.0
+            elif self.strategy == "prior":
+                out = np.ones((n_samples, 1)) * class_prior_[k]
 
             elif self.strategy == "stratified":
                 out = rs.multinomial(1, class_prior_[k], size=n_samples)
@@ -319,6 +328,8 @@ class DummyRegressor(BaseEstimator, RegressorMixin):
 
     This regressor is useful as a simple baseline to compare with other
     (real) regressors. Do not use it for real problems.
+
+    Read more in the :ref:`User Guide <dummy_estimators>`.
 
     Parameters
     ----------

@@ -65,7 +65,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u('scikit-learn')
-copyright = u('2010 - 2014, scikit-learn developers (BSD License)')
+copyright = u('2010 - 2015, scikit-learn developers (BSD License)')
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -170,7 +170,7 @@ html_static_path = ['images']
 #html_additional_pages = {}
 
 # If false, no module index is generated.
-html_use_modindex = False
+html_domain_indices = False
 
 # If false, no index is generated.
 html_use_index = False
@@ -225,7 +225,7 @@ latex_preamble = r"""
 #latex_appendices = []
 
 # If false, no module index is generated.
-#latex_use_modindex = True
+latex_domain_indices = False
 
 trim_doctests_flags = True
 

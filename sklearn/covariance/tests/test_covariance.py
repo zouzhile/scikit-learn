@@ -11,6 +11,7 @@ from sklearn.utils.testing import assert_array_almost_equal
 from sklearn.utils.testing import assert_array_equal
 from sklearn.utils.testing import assert_raises
 from sklearn.utils.testing import assert_warns
+from sklearn.utils.testing import assert_greater
 
 from sklearn import datasets
 from sklearn.covariance import empirical_covariance, EmpiricalCovariance, \
@@ -42,8 +43,7 @@ def test_covariance():
                   cov.error_norm, emp_cov, norm='foo')
     # Mahalanobis distances computation test
     mahal_dist = cov.mahalanobis(X)
-    print(np.amin(mahal_dist), np.amax(mahal_dist))
-    assert(np.amin(mahal_dist) > 0)
+    assert_greater(np.amin(mahal_dist), 0)
 
     # test with n_features = 1
     X_1d = X[:, 0].reshape((-1, 1))
@@ -55,8 +55,8 @@ def test_covariance():
         cov.error_norm(empirical_covariance(X_1d), norm='spectral'), 0)
 
     # test with one sample
-    # FIXME I don't know what this test does
-    X_1sample = np.arange(5)
+    # Create X with 1 sample and 5 features
+    X_1sample = np.arange(5).reshape(1, 5)
     cov = EmpiricalCovariance()
     assert_warns(UserWarning, cov.fit, X_1sample)
     assert_array_almost_equal(cov.covariance_,
@@ -145,10 +145,6 @@ def test_ledoit_wolf():
     assert_almost_equal(lw.score(X_centered), score_, 4)
     assert(lw.precision_ is None)
 
-    # (too) large data set
-    X_large = np.ones((20, 200))
-    assert_raises(MemoryError, ledoit_wolf, X_large, block_size=100)
-
     # Same tests without assuming centered data
     # test shrinkage coeff on a simple data set
     lw = LedoitWolf()
@@ -176,8 +172,8 @@ def test_ledoit_wolf():
     assert_array_almost_equal(empirical_covariance(X_1d), lw.covariance_, 4)
 
     # test with one sample
-    # FIXME I don't know what this test does
-    X_1sample = np.arange(5)
+    # warning should be raised when using only 1 sample
+    X_1sample = np.arange(5).reshape(1, 5)
     lw = LedoitWolf()
     assert_warns(UserWarning, lw.fit, X_1sample)
     assert_array_almost_equal(lw.covariance_,
@@ -188,6 +184,21 @@ def test_ledoit_wolf():
     lw.fit(X)
     assert_almost_equal(lw.score(X), score_, 4)
     assert(lw.precision_ is None)
+
+
+def test_ledoit_wolf_large():
+    # test that ledoit_wolf doesn't error on data that is wider than block_size
+    rng = np.random.RandomState(0)
+    # use a number of features that is larger than the block-size
+    X = rng.normal(size=(10, 20))
+    lw = LedoitWolf(block_size=10).fit(X)
+    # check that covariance is about diagonal (random normal noise)
+    assert_almost_equal(lw.covariance_, np.eye(20), 0)
+    cov = lw.covariance_
+
+    # check that the result is consistent with not splitting data into blocks.
+    lw = LedoitWolf(block_size=25).fit(X)
+    assert_almost_equal(lw.covariance_, cov)
 
 
 def test_oas():
@@ -209,7 +220,7 @@ def test_oas():
     assert_array_almost_equal(scov.covariance_, oa.covariance_, 4)
 
     # test with n_features = 1
-    X_1d = X[:, 0].reshape((-1, 1))
+    X_1d = X[:, 0:1]
     oa = OAS(assume_centered=True)
     oa.fit(X_1d)
     oa_cov_from_mle, oa_shinkrage_from_mle = oas(X_1d, assume_centered=True)
@@ -248,8 +259,8 @@ def test_oas():
     assert_array_almost_equal(empirical_covariance(X_1d), oa.covariance_, 4)
 
     # test with one sample
-    # FIXME I don't know what this test does
-    X_1sample = np.arange(5)
+    # warning should be raised when using only 1 sample
+    X_1sample = np.arange(5).reshape(1, 5)
     oa = OAS()
     assert_warns(UserWarning, oa.fit, X_1sample)
     assert_array_almost_equal(oa.covariance_,

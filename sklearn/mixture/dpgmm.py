@@ -65,7 +65,7 @@ def wishart_logz(v, s, dets, n_features):
 
 def _bound_wishart(a, B, detB):
     """Returns a function of the dof, scale matrix and its determinant
-    used as an upper bound in variational approcimation of the evidence"""
+    used as an upper bound in variational approximation of the evidence"""
     n_features = B.shape[0]
     logprior = wishart_logz(a, B, detB, n_features)
     logprior -= wishart_logz(n_features,
@@ -125,6 +125,8 @@ class DPGMM(GMM):
     Initialization is with normally-distributed means and identity
     covariance, for proper convergence.
 
+    Read more in the :ref:`User Guide <dpgmm>`.
+
     Parameters
     ----------
     n_components: int, default 1
@@ -158,7 +160,7 @@ class DPGMM(GMM):
         process.  Can contain any combination of 'w' for weights,
         'm' for means, and 'c' for covars.  Defaults to 'wmc'.
 
-    verbose : boolean, default False
+    verbose : int, default 0
         Controls output verbosity.
 
     Attributes
@@ -198,15 +200,14 @@ class DPGMM(GMM):
     """
 
     def __init__(self, n_components=1, covariance_type='diag', alpha=1.0,
-                 random_state=None, thresh=None, tol=1e-3, verbose=False,
-                 min_covar=None, n_iter=10, params='wmc', init_params='wmc'):
+                 random_state=None, tol=1e-3, verbose=0, min_covar=None,
+                 n_iter=10, params='wmc', init_params='wmc'):
         self.alpha = alpha
-        self.verbose = verbose
         super(DPGMM, self).__init__(n_components, covariance_type,
-                                    random_state=random_state, thresh=thresh,
+                                    random_state=random_state,
                                     tol=tol, min_covar=min_covar,
                                     n_iter=n_iter, params=params,
-                                    init_params=init_params)
+                                    init_params=init_params, verbose=verbose)
 
     def _get_precisions(self):
         """Return precisions as a full matrix."""
@@ -367,7 +368,7 @@ class DPGMM(GMM):
         expected.
 
         Note: this is very expensive and should not be used by default."""
-        if self.verbose:
+        if self.verbose > 0:
             print("Bound after updating %8s: %f" % (n, self.lower_bound(X, z)))
             if end:
                 print("Cluster proportions:", self.gamma_.T[1])
@@ -480,7 +481,7 @@ class DPGMM(GMM):
                                                     + self.gamma_[i, 2])
         self.weights_ /= np.sum(self.weights_)
 
-    def fit(self, X, y=None):
+    def _fit(self, X, y=None):
         """Estimate model parameters with the variational
         algorithm.
 
@@ -500,6 +501,12 @@ class DPGMM(GMM):
         X : array_like, shape (n, n_features)
             List of n_features-dimensional data points.  Each row
             corresponds to a single data point.
+
+        Returns
+        -------
+        responsibilities : array, shape (n_samples, n_components)
+            Posterior probabilities of each mixture component for each
+            observation.
         """
         self.random_state_ = check_random_state(self.random_state)
 
@@ -571,10 +578,6 @@ class DPGMM(GMM):
         # reset self.converged_ to False
         self.converged_ = False
 
-        # this line should be removed when 'thresh' is removed in v0.18
-        tol = (self.tol if self.thresh is None
-               else self.thresh / float(n_samples))
-
         for i in range(self.n_iter):
             prev_log_likelihood = current_log_likelihood
             # Expectation step
@@ -584,20 +587,23 @@ class DPGMM(GMM):
                 curr_logprob.mean() + self._logprior(z) / n_samples)
 
             # Check for convergence.
-            # (should compare to self.tol when dreprecated 'thresh' is
-            # removed in v0.18)
             if prev_log_likelihood is not None:
                 change = abs(current_log_likelihood - prev_log_likelihood)
-                if change < tol:
+                if change < self.tol:
                     self.converged_ = True
                     break
 
             # Maximization step
             self._do_mstep(X, z, self.params)
 
+        if self.n_iter == 0:
+            # Need to make sure that there is a z value to output
+            # Output zeros because it was just a quick initialization
+            z = np.zeros((X.shape[0], self.n_components))
+
         self._set_weights()
 
-        return self
+        return z
 
 
 class VBGMM(DPGMM):
@@ -610,6 +616,8 @@ class VBGMM(DPGMM):
 
     Initialization is with normally-distributed means and identity
     covariance, for proper convergence.
+
+    Read more in the :ref:`User Guide <vbgmm>`.
 
     Parameters
     ----------
@@ -642,7 +650,7 @@ class VBGMM(DPGMM):
         process.  Can contain any combination of 'w' for weights,
         'm' for means, and 'c' for covars.  Defaults to 'wmc'.
 
-    verbose : boolean, default False
+    verbose : int, default 0
         Controls output verbosity.
 
     Attributes
@@ -684,11 +692,11 @@ class VBGMM(DPGMM):
     """
 
     def __init__(self, n_components=1, covariance_type='diag', alpha=1.0,
-                 random_state=None, thresh=None, tol=1e-3, verbose=False,
+                 random_state=None, tol=1e-3, verbose=0,
                  min_covar=None, n_iter=10, params='wmc', init_params='wmc'):
         super(VBGMM, self).__init__(
             n_components, covariance_type, random_state=random_state,
-            thresh=thresh, tol=tol, verbose=verbose, min_covar=min_covar,
+            tol=tol, verbose=verbose, min_covar=min_covar,
             n_iter=n_iter, params=params, init_params=init_params)
         self.alpha = float(alpha) / n_components
 
@@ -768,7 +776,7 @@ class VBGMM(DPGMM):
         expected.
 
         Note: this is very expensive and should not be used by default."""
-        if self.verbose:
+        if self.verbose > 0:
             print("Bound after updating %8s: %f" % (n, self.lower_bound(X, z)))
             if end:
                 print("Cluster proportions:", self.gamma_)

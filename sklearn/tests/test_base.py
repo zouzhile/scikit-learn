@@ -14,7 +14,7 @@ from sklearn.utils.testing import assert_raises
 from sklearn.base import BaseEstimator, clone, is_classifier
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
-from sklearn.grid_search import GridSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn.utils import deprecated
 
 
@@ -133,6 +133,14 @@ def test_clone_empty_array():
     clf = MyEstimator(empty=sp.csr_matrix(np.array([[0]])))
     clf2 = clone(clf)
     assert_array_equal(clf.empty.data, clf2.empty.data)
+
+
+def test_clone_nan():
+    # Regression test for cloning estimators with default parameter as np.nan
+    clf = MyEstimator(empty=np.nan)
+    clf2 = clone(clf)
+
+    assert_true(clf.empty is clf2.empty)
 
 
 def test_repr():

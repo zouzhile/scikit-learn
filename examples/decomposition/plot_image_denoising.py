@@ -46,7 +46,6 @@ from sklearn.feature_extraction.image import reconstruct_from_patches_2d
 
 ###############################################################################
 # Load Lena image and extract patches
-
 lena = lena() / 256.0
 
 # downsample for higher speed
@@ -144,10 +143,6 @@ for title, transform_algorithm, kwargs in transform_algorithms:
     dico.set_params(transform_algorithm=transform_algorithm, **kwargs)
     code = dico.transform(data)
     patches = np.dot(code, V)
-
-    if transform_algorithm == 'threshold':
-        patches -= patches.min()
-        patches /= patches.max()
 
     patches += intercept
     patches = patches.reshape(len(data), *patch_size)

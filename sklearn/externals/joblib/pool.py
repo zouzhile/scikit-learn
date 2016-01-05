@@ -35,9 +35,6 @@ except ImportError:
 # Customizable pure Python pickler in Python 2
 # customizable C-optimized pickler under Python 3.3+
 from pickle import Pickler
-if sys.version_info[0] > 2 and not hasattr(Pickler, 'dispatch_table'):
-    # Special case for Python 3.2: use the pure Python pickler as fallback
-    from pickle import _Pickler as Pickler
 
 from pickle import HIGHEST_PROTOCOL
 from io import BytesIO
@@ -95,7 +92,7 @@ def has_shareable_memory(a):
 
 def _strided_from_memmap(filename, dtype, mode, offset, order, shape, strides,
                          total_buffer_len):
-    """Reconstruct an array view on a memmory mapped file"""
+    """Reconstruct an array view on a memory mapped file"""
     if mode == 'w+':
         # Do not zero the original data when unpickling
         mode = 'r+'
@@ -296,8 +293,8 @@ class CustomizablePickler(Pickler):
             # a reference to the class dictionary under Python 2
             self.dispatch = Pickler.dispatch.copy()
         else:
-            # Under Python 3 initialize the dispatch table with with a copy of
-            # the default registry
+            # Under Python 3 initialize the dispatch table with a copy of the
+            # default registry
             self.dispatch_table = copyreg.dispatch_table.copy()
         for type, reduce_func in reducers.items():
             self.register(type, reduce_func)
@@ -320,7 +317,7 @@ class CustomizablePicklingQueue(object):
     This class is an alternative to the multiprocessing implementation
     of SimpleQueue in order to make it possible to pass custom
     pickling reducers, for instance to avoid memory copy when passing
-    memmory mapped datastructures.
+    memory mapped datastructures.
 
     `reducers` is expected expected to be a dictionary with key/values
     being `(type, callable)` pairs where `callable` is a function that

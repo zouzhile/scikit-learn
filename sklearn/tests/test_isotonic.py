@@ -12,7 +12,7 @@ from sklearn.utils import shuffle
 
 
 def test_permutation_invariance():
-    # check that fit is permuation invariant.
+    # check that fit is permutation invariant.
     # regression test of missing sorting of sample-weights
     ir = IsotonicRegression()
     x = [1, 2, 3, 4, 5, 6, 7]
@@ -346,8 +346,3 @@ def test_isotonic_zero_weight_loop():
 
     # This will hang in failure case.
     regression.fit(x, y, sample_weight=w)
-
-
-if __name__ == "__main__":
-    import nose
-    nose.run(argv=['', __file__])

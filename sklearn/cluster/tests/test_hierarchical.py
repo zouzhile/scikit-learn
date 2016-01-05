@@ -18,6 +18,7 @@ from sklearn.utils.testing import assert_raises
 from sklearn.utils.testing import assert_equal
 from sklearn.utils.testing import assert_almost_equal
 from sklearn.utils.testing import assert_array_almost_equal
+from sklearn.utils.testing import assert_raise_message
 from sklearn.utils.testing import ignore_warnings
 
 from sklearn.cluster import ward_tree
@@ -46,13 +47,13 @@ def test_linkage_misc():
     # Smoke test FeatureAgglomeration
     FeatureAgglomeration().fit(X)
 
-    # test hiearchical clustering on a precomputed distances matrix
+    # test hierarchical clustering on a precomputed distances matrix
     dis = cosine_distances(X)
 
     res = linkage_tree(dis, affinity="precomputed")
     assert_array_equal(res[0], linkage_tree(X, affinity="cosine")[0])
 
-    # test hiearchical clustering on a precomputed distances matrix
+    # test hierarchical clustering on a precomputed distances matrix
     res = linkage_tree(X, affinity=manhattan_distances)
     assert_array_equal(res[0], linkage_tree(X, affinity="manhattan")[0])
 
@@ -496,6 +497,13 @@ def test_n_components():
         assert_equal(ignore_warnings(linkage_func)(X, connectivity)[1], 5)
 
 
-if __name__ == '__main__':
-    import nose
-    nose.run(argv=['', __file__])
+def test_agg_n_clusters():
+    # Test that an error is raised when n_clusters <= 0
+
+    rng = np.random.RandomState(0)
+    X = rng.rand(20, 10)
+    for n_clus in [-1, 0]:
+        agc = AgglomerativeClustering(n_clusters=n_clus)
+        msg = ("n_clusters should be an integer greater than 0."
+               " %s was provided." % str(agc.n_clusters))
+        assert_raise_message(ValueError, msg, agc.fit, X)
