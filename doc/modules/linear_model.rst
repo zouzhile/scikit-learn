@@ -665,6 +665,8 @@ hyperparameters :math:`\lambda_1` and :math:`\lambda_2`.
    :align: center
    :scale: 50%
 
+ARD is also known in the literature as *Sparse Bayesian Learning* and
+*Relevance Vector Machine* [3]_ [4]_.
 
 .. topic:: Examples:
 
@@ -674,7 +676,13 @@ hyperparameters :math:`\lambda_1` and :math:`\lambda_2`.
 
     .. [1] Christopher M. Bishop: Pattern Recognition and Machine Learning, Chapter 7.2.1
 
-    .. [2] David Wipf and Srikantan Nagarajan: `A new view of automatic relevance determination. <http://books.nips.cc/papers/files/nips20/NIPS2007_0976.pdf>`_
+    .. [2] David Wipf and Srikantan Nagarajan: `A new view of automatic relevance determination <http://papers.nips.cc/paper/3372-a-new-view-of-automatic-relevance-determination.pdf>`_
+
+    .. [3] Michael E. Tipping: `Sparse Bayesian Learning and the Relevance Vector Machine <http://www.jmlr.org/papers/volume1/tipping01a/tipping01a.pdf>`_
+
+    .. [4] Tristan Fletcher: `Relevance Vector Machines explained <http://www.tristanfletcher.co.uk/RVM%20Explained.pdf>`_
+
+
 
 .. _Logistic_regression:
 
@@ -721,12 +729,12 @@ weights to zero) model.
 The "lbfgs", "sag" and "newton-cg" solvers only support L2 penalization and
 are found to converge faster for some high dimensional data. Setting
 `multi_class` to "multinomial" with these solvers learns a true multinomial
-logistic regression model [3]_, which means that its probability estimates
+logistic regression model [5]_, which means that its probability estimates
 should be better calibrated than the default "one-vs-rest" setting. The
 "lbfgs", "sag" and "newton-cg"" solvers cannot optimize L1-penalized models,
 therefore the "multinomial" setting does not learn sparse models.
 
-The solver "sag" uses a Stochastic Average Gradient descent [4]_. It is faster
+The solver "sag" uses a Stochastic Average Gradient descent [6]_. It is faster
 than other solvers for large datasets, when both the number of samples and the
 number of features are large.
 
@@ -778,9 +786,9 @@ entropy loss.
 
 .. topic:: References:
 
-    .. [3] Christopher M. Bishop: Pattern Recognition and Machine Learning, Chapter 4.3.4
+    .. [5] Christopher M. Bishop: Pattern Recognition and Machine Learning, Chapter 4.3.4
 
-    .. [4] Mark Schmidt, Nicolas Le Roux, and Francis Bach: `Minimizing Finite Sums with the Stochastic Average Gradient. <http://hal.inria.fr/hal-00860051/PDF/sag_journal.pdf>`_
+    .. [6] Mark Schmidt, Nicolas Le Roux, and Francis Bach: `Minimizing Finite Sums with the Stochastic Average Gradient. <http://hal.inria.fr/hal-00860051/PDF/sag_journal.pdf>`_
 
 Stochastic Gradient Descent - SGD
 =================================
@@ -902,15 +910,24 @@ in these settings.
 
 .. topic:: **Trade-offs: which estimator?**
 
-   Scikit-learn provides 2 robust regression estimators:
-   :ref:`RANSAC <ransac_regression>` and
-   :ref:`Theil Sen <theil_sen_regression>`
+  Scikit-learn provides 3 robust regression estimators:
+  :ref:`RANSAC <ransac_regression>`,
+  :ref:`Theil Sen <theil_sen_regression>` and
+  :ref:`HuberRegressor <huber_regression>`
 
-   * :ref:`RANSAC <ransac_regression>` is faster, and scales much better
-     with the number of samples
+  * :ref:`HuberRegressor <huber_regression>` should be faster than
+    :ref:`RANSAC <ransac_regression>` and :ref:`Theil Sen <theil_sen_regression>`
+    unless the number of samples are very large, i.e ``n_samples`` >> ``n_features``.
+    This is because :ref:`RANSAC <ransac_regression>` and :ref:`Theil Sen <theil_sen_regression>`
+    fit on smaller subsets of the data. However, both :ref:`Theil Sen <theil_sen_regression>`
+    and :ref:`RANSAC <ransac_regression>` are unlikely to be as robust as
+    :ref:`HuberRegressor <huber_regression>` for the default parameters.
 
-   * :ref:`RANSAC <ransac_regression>` will deal better with large
-     outliers in the y direction (most common situation)
+  * :ref:`RANSAC <ransac_regression>` is faster than :ref:`Theil Sen <theil_sen_regression>`
+    and scales much better with the number of samples
+
+  * :ref:`RANSAC <ransac_regression>` will deal better with large
+    outliers in the y direction (most common situation)
 
   * :ref:`Theil Sen <theil_sen_regression>` will cope better with
     medium-size outliers in the X direction, but this property will
@@ -1050,6 +1067,67 @@ considering only a random subset of all possible combinations.
 
     .. [#f2] T. Kärkkäinen and S. Äyrämö: `On Computation of Spatial Median for Robust Data Mining. <http://users.jyu.fi/~samiayr/pdf/ayramo_eurogen05.pdf>`_
 
+.. _huber_regression:
+
+Huber Regression
+----------------
+
+The :class:`HuberRegressor` is different to :class:`Ridge` because it applies a
+linear loss to samples that are classified as outliers.
+A sample is classified as an inlier if the absolute error of that sample is
+lesser than a certain threshold. It differs from :class:`TheilSenRegressor`
+and :class:`RANSACRegressor` because it does not ignore the effect of the outliers
+but gives a lesser weight to them.
+
+.. figure:: ../auto_examples/linear_model/images/plot_huber_vs_ridge_001.png
+   :target: ../auto_examples/linear_model/plot_huber_vs_ridge.html
+   :align: center
+   :scale: 50%
+
+The loss function that :class:`HuberRegressor` minimizes is given by
+
+.. math::
+
+  \underset{w, \sigma}{min\,} {\sum_{i=1}^n\left(\sigma + H_m\left(\frac{X_{i}w - y_{i}}{\sigma}\right)\sigma\right) + \alpha {||w||_2}^2}
+
+where
+
+.. math::
+
+  H_m(z) = \begin{cases}
+         z^2, & \text {if } |z| < \epsilon, \\
+         2\epsilon|z| - \epsilon^2, & \text{otherwise}
+  \end{cases}
+
+It is advised to set the parameter ``epsilon`` to 1.35 to achieve 95% statistical efficiency.
+
+Notes
+-----
+The :class:`HuberRegressor` differs from using :class:`SGDRegressor` with loss set to `huber`
+in the following ways.
+
+- :class:`HuberRegressor` is scaling invariant. Once ``epsilon`` is set, scaling ``X`` and ``y``
+  down or up by different values would produce the same robustness to outliers as before.
+  as compared to :class:`SGDRegressor` where ``epsilon`` has to be set again when ``X`` and ``y`` are
+  scaled.
+
+- :class:`HuberRegressor` should be more efficient to use on data with small number of
+  samples while :class:`SGDRegressor` needs a number of passes on the training data to
+  produce the same robustness.
+
+.. topic:: Examples:
+
+  * :ref:`example_linear_model_plot_huber_vs_ridge.py`
+
+.. topic:: References:
+
+    .. [#f1] Peter J. Huber, Elvezio M. Ronchetti: Robust Statistics, Concomitant scale estimates, pg 172
+
+Also, this estimator is different from the R implementation of Robust Regression
+(http://www.ats.ucla.edu/stat/r/dae/rreg.htm) because the R implementation does a weighted least
+squares implementation with weights given to each sample on the basis of how much the residual is
+greater than a certain threshold.
+
 .. _polynomial_regression:
 
 Polynomial regression: extending linear models with basis functions
@@ -1163,6 +1241,3 @@ This way, we can solve the XOR problem with a linear classifier::
     >>> clf = Perceptron(fit_intercept=False, n_iter=10, shuffle=False).fit(X, y)
     >>> clf.score(X, y)
     1.0
-
-
-

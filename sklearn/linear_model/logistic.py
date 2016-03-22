@@ -499,7 +499,7 @@ def logistic_regression_path(X, y, pos_class=None, Cs=10, fit_intercept=True,
 
         The "balanced" mode uses the values of y to automatically adjust
         weights inversely proportional to class frequencies in the input data
-        as ``n_samples / (n_classes * np.bincount(y))``
+        as ``n_samples / (n_classes * np.bincount(y))``.
 
         Note that these weights will be multiplied with sample_weight (passed
         through the fit method) if sample_weight is specified.
@@ -514,12 +514,13 @@ def logistic_regression_path(X, y, pos_class=None, Cs=10, fit_intercept=True,
         'sag' and 'lbfgs' solvers support only l2 penalties.
 
     intercept_scaling : float, default 1.
-        This parameter is useful only when the solver 'liblinear' is used
+        Useful only when the solver 'liblinear' is used
         and self.fit_intercept is set to True. In this case, x becomes
         [x, self.intercept_scaling],
-        i.e. a "synthetic" feature with constant value equals to
+        i.e. a "synthetic" feature with constant value equal to
         intercept_scaling is appended to the instance vector.
-        The intercept becomes intercept_scaling * synthetic feature weight
+        The intercept becomes ``intercept_scaling * synthetic_feature_weight``.
+
         Note! the synthetic feature weight is subject to l1/l2 regularization
         as all other features.
         To lessen the effect of regularization on synthetic feature weight
@@ -796,10 +797,12 @@ def _log_reg_scoring_path(X, y, train, test, pos_class=None, Cs=10,
         values are chosen in a logarithmic scale between 1e-4 and 1e4.
         If not provided, then a fixed set of values for Cs are used.
 
-    scoring : callable
-        For a list of scoring functions that can be used, look at
-        :mod:`sklearn.metrics`. The default scoring option used is
-        accuracy_score.
+    scoring : callable or None, optional, default: None
+        A string (see model evaluation documentation) or
+        a scorer callable object / function with signature
+        ``scorer(estimator, X, y)``. For a list of scoring functions
+        that can be used, look at :mod:`sklearn.metrics`. The
+        default scoring option used is accuracy_score.
 
     fit_intercept : bool
         If False, then the bias term is set to zero. Else the last
@@ -830,8 +833,8 @@ def _log_reg_scoring_path(X, y, train, test, pos_class=None, Cs=10,
         Decides which solver to use.
 
     penalty : str, 'l1' or 'l2'
-        Used to specify the norm used in the penalization. The newton-cg and
-        lbfgs solvers support only l2 penalties.
+        Used to specify the norm used in the penalization. The 'newton-cg',
+        'sag' and 'lbfgs' solvers support only l2 penalties.
 
     dual : bool
         Dual or primal formulation. Dual formulation is only implemented for
@@ -839,7 +842,7 @@ def _log_reg_scoring_path(X, y, train, test, pos_class=None, Cs=10,
         n_samples > n_features.
 
     intercept_scaling : float, default 1.
-        This parameter is useful only when the solver 'liblinear' is used
+        Useful only when the solver 'liblinear' is used
         and self.fit_intercept is set to True. In this case, x becomes
         [x, self.intercept_scaling],
         i.e. a "synthetic" feature with constant value equals to
@@ -970,8 +973,8 @@ class LogisticRegression(BaseEstimator, LinearClassifierMixin,
     Parameters
     ----------
     penalty : str, 'l1' or 'l2', default: 'l2'
-        Used to specify the norm used in the penalization. The newton-cg, sag
-        and lbfgs solvers support only l2 penalties.
+        Used to specify the norm used in the penalization. The 'newton-cg',
+        'sag' and 'lbfgs' solvers support only l2 penalties.
 
     dual : bool, default: False
         Dual or primal formulation. Dual formulation is only implemented for
@@ -987,13 +990,14 @@ class LogisticRegression(BaseEstimator, LinearClassifierMixin,
         Specifies if a constant (a.k.a. bias or intercept) should be
         added to the decision function.
 
-    intercept_scaling : float, default: 1
-        Useful only if solver is liblinear.
-        when self.fit_intercept is True, instance vector x becomes
+    intercept_scaling : float, default 1.
+        Useful only when the solver 'liblinear' is used
+        and self.fit_intercept is set to True. In this case, x becomes
         [x, self.intercept_scaling],
-        i.e. a "synthetic" feature with constant value equals to
+        i.e. a "synthetic" feature with constant value equal to
         intercept_scaling is appended to the instance vector.
-        The intercept becomes intercept_scaling * synthetic feature weight
+        The intercept becomes ``intercept_scaling * synthetic_feature_weight``.
+
         Note! the synthetic feature weight is subject to l1/l2 regularization
         as all other features.
         To lessen the effect of regularization on synthetic feature weight
@@ -1005,7 +1009,7 @@ class LogisticRegression(BaseEstimator, LinearClassifierMixin,
 
         The "balanced" mode uses the values of y to automatically adjust
         weights inversely proportional to class frequencies in the input data
-        as ``n_samples / (n_classes * np.bincount(y))``
+        as ``n_samples / (n_classes * np.bincount(y))``.
 
         Note that these weights will be multiplied with sample_weight (passed
         through the fit method) if sample_weight is specified.
@@ -1344,7 +1348,7 @@ class LogisticRegressionCV(LogisticRegression, BaseEstimator,
 
         The "balanced" mode uses the values of y to automatically adjust
         weights inversely proportional to class frequencies in the input data
-        as ``n_samples / (n_classes * np.bincount(y))``
+        as ``n_samples / (n_classes * np.bincount(y))``.
 
         Note that these weights will be multiplied with sample_weight (passed
         through the fit method) if sample_weight is specified.
@@ -1359,8 +1363,8 @@ class LogisticRegressionCV(LogisticRegression, BaseEstimator,
         list of possible cross-validation objects.
 
     penalty : str, 'l1' or 'l2'
-        Used to specify the norm used in the penalization. The newton-cg and
-        lbfgs solvers support only l2 penalties.
+        Used to specify the norm used in the penalization. The 'newton-cg',
+        'sag' and 'lbfgs' solvers support only l2 penalties.
 
     dual : bool
         Dual or primal formulation. Dual formulation is only implemented for
@@ -1423,13 +1427,13 @@ class LogisticRegressionCV(LogisticRegression, BaseEstimator,
            Stochastic Average Gradient descent solver for 'multinomial' case.
 
     intercept_scaling : float, default 1.
-        Useful only if solver is liblinear.
-        This parameter is useful only when the solver 'liblinear' is used
+        Useful only when the solver 'liblinear' is used
         and self.fit_intercept is set to True. In this case, x becomes
         [x, self.intercept_scaling],
-        i.e. a "synthetic" feature with constant value equals to
+        i.e. a "synthetic" feature with constant value equal to
         intercept_scaling is appended to the instance vector.
-        The intercept becomes intercept_scaling * synthetic feature weight
+        The intercept becomes ``intercept_scaling * synthetic_feature_weight``.
+
         Note! the synthetic feature weight is subject to l1/l2 regularization
         as all other features.
         To lessen the effect of regularization on synthetic feature weight
